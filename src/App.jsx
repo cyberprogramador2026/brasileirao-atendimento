@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -101,11 +101,24 @@ function formatDate(date = new Date()) {
   });
 }
 
+const dateFieldCandidates = [
+  "DataAvaliacao",
+  "data avaliacao",
+  "data de avaliacao",
+  "data",
+  "dt avaliacao",
+  "dt_avaliacao",
+];
+
+function getDateValue(row) {
+  return findField(row, dateFieldCandidates);
+}
+
 function normalizeDateKey(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
 
-  const onlyDate = raw.split(" ")[0];
+  const onlyDate = raw.split(/[ T]/)[0];
 
   const brMatch = onlyDate.match(/^([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{2,4})$/);
   if (brMatch) {
@@ -126,17 +139,31 @@ function normalizeDateKey(value) {
   return onlyDate;
 }
 
+function getLatestDateKey(rows) {
+  return rows.reduce((latest, row) => {
+    const key = normalizeDateKey(getDateValue(row));
+    if (!key) return latest;
+    return !latest || key > latest ? key : latest;
+  }, "");
+}
+
+function getLatestDayRows(rows) {
+  const latestDateKey = getLatestDateKey(rows);
+  if (!latestDateKey) return rows;
+  return rows.filter((row) => normalizeDateKey(getDateValue(row)) === latestDateKey);
+}
+
+function formatDateKey(dateKey) {
+  const match = String(dateKey || "").match(/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/);
+  if (!match) return dateKey || formatDate();
+  return `${match[3]}/${match[2]}/${match[1].slice(-2)}`;
+}
+
 function countUniqueDays(rows) {
   const days = new Set();
 
   rows.forEach((row) => {
-    const dateValue = findField(row, [
-      "DataAvaliacao",
-      "data avaliacao",
-      "data avaliação",
-      "data",
-    ]);
-    const key = normalizeDateKey(dateValue);
+    const key = normalizeDateKey(getDateValue(row));
     if (key) days.add(key);
   });
 
@@ -627,8 +654,7 @@ function RankingTable({ data, title, twoColumns, filterStatus, search }) {
 
 export default function App() {
   const fileInputRef = useRef(null);
-  const [rows, setRows] = useState(() => mapRows(demoData));
-  const [stats, setStats] = useState(() => calculateStats(demoData));
+  const [rawRows, setRawRows] = useState(demoData);
   const [fileName, setFileName] = useState("Exemplo demonstrativo");
   const [activeTab, setActiveTab] = useState("dia");
   const [twoColumns, setTwoColumns] = useState(true);
@@ -637,9 +663,25 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [round, setRound] = useState(() => countUniqueDays(demoData));
 
-  const leader = rows[0];
-  const g6 = rows.slice(0, 6);
-  const z4 = rows.slice(-4);
+  const latestDayRows = useMemo(() => getLatestDayRows(rawRows), [rawRows]);
+  const dayRanking = useMemo(() => mapRows(latestDayRows), [latestDayRows]);
+  const generalRanking = useMemo(() => mapRows(rawRows), [rawRows]);
+  const stats = useMemo(() => calculateStats(rawRows), [rawRows]);
+  const latestDayLabel = formatDateKey(getLatestDateKey(rawRows));
+  const currentRanking = activeTab === "dia" ? dayRanking : generalRanking;
+
+  const leaderDay = dayRanking[0];
+  const leaderGeneral = generalRanking[0];
+  const g6 = currentRanking.slice(0, 6);
+  const z4 = currentRanking.slice(-4);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setActiveTab((current) => (current === "dia" ? "geral" : "dia"));
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   async function handleFile(event) {
     const file = event.target.files?.[0];
@@ -662,16 +704,14 @@ export default function App() {
       return;
     }
 
-    setRows(ranked);
-    setStats(calculateStats(jsonRows));
+    setRawRows(jsonRows);
     setFileName(file.name);
     setRound(countUniqueDays(jsonRows));
     event.target.value = "";
   }
 
   function resetDemo() {
-    setRows(mapRows(demoData));
-    setStats(calculateStats(demoData));
+    setRawRows(demoData);
     setFileName("Exemplo demonstrativo");
     setRound(countUniqueDays(demoData));
     setSearch("");
@@ -724,10 +764,10 @@ export default function App() {
         </header>
 
         <section className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <InfoCard icon={CalendarDays} label="Data do dia" value={formatDate()} />
+          <InfoCard icon={CalendarDays} label="Data do dia" value={latestDayLabel} />
           <InfoCard icon={Clock3} label="Rodadas" value={round} />
-          <InfoCard icon={Medal} label="Líder do dia" value={leader?.nomeApresentativo || "Sem dados"} />
-          <InfoCard icon={Trophy} label="Líder geral" value={leader?.nomeApresentativo || "Sem dados"} />
+          <InfoCard icon={Medal} label="Líder do dia" value={leaderDay?.nomeApresentativo || "Sem dados"} />
+          <InfoCard icon={Trophy} label="Líder geral" value={leaderGeneral?.nomeApresentativo || "Sem dados"} />
           <InfoCard icon={FileUp} label="Arquivo" value={fileName} />
         </section>
 
@@ -786,8 +826,8 @@ export default function App() {
 
         <div className="mt-3">
           <RankingTable
-            data={rows}
-            title={activeTab === "dia" ? "Classificação do dia" : "Classificação geral"}
+            data={currentRanking}
+            title={activeTab === "dia" ? `Classificação do dia - ${latestDayLabel}` : "Classificação geral"}
             twoColumns={twoColumns}
             filterStatus={filterStatus}
             search={search}
