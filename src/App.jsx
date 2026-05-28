@@ -27,6 +27,7 @@ const statusStyles = {
 
 const STORAGE_KEY = "brasileirao-atendimento:importacao:v1";
 const DEMO_FILE_NAME = "Exemplo demonstrativo";
+const INITIAL_VIEWPORT = { width: 1280, height: 720 };
 
 const excludedNames = [
   "LANA MEDEIROS",
@@ -395,6 +396,33 @@ function getInitialDashboardState() {
   };
 }
 
+function getViewportSize() {
+  if (typeof window === "undefined") return INITIAL_VIEWPORT;
+
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+}
+
+function useViewportSize() {
+  const [viewport, setViewport] = useState(() => getViewportSize());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    function handleResize() {
+      setViewport(getViewportSize());
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return viewport;
+}
+
 function isElogio(comment) {
   const text = String(comment || "")
     .normalize("NFD")
@@ -498,11 +526,11 @@ function HeaderButton({ icon: Icon, children, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-black shadow-sm transition hover:-translate-y-0.5 ${
+      className={`header-button flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black shadow-sm transition hover:-translate-y-0.5 ${
         active ? "bg-lime-400 text-slate-950" : "bg-slate-200/95 text-slate-900 hover:bg-white"
       }`}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-4 w-4" />
       {children}
     </button>
   );
@@ -510,11 +538,11 @@ function HeaderButton({ icon: Icon, children, active, onClick }) {
 
 function InfoCard({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-300/70 bg-gradient-to-b from-slate-100 to-slate-200 px-4 py-3 shadow-inner">
-      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wide text-slate-600">
-        <Icon className="h-4 w-4" /> {label}
+    <div className="info-card rounded-xl border border-slate-300/70 bg-gradient-to-b from-slate-100 to-slate-200 px-3 py-2 shadow-inner">
+      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-slate-600">
+        <Icon className="h-3.5 w-3.5" /> {label}
       </div>
-      <div className="mt-1 truncate text-sm font-black text-slate-950">{value}</div>
+      <div className="truncate text-xs font-black text-slate-950">{value}</div>
     </div>
   );
 }
@@ -533,48 +561,48 @@ function ExcellencePanel({ stats }) {
   ];
 
   return (
-    <section className="mt-3 space-y-3">
-      <div className="rounded-2xl border border-amber-200 bg-white/95 p-3 shadow-sm">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-700">
+    <section className="dashboard-excellence grid grid-cols-1 gap-2 xl:grid-cols-[0.9fr_1.1fr]">
+      <div className="excellence-card rounded-xl border border-amber-200 bg-white/95 p-2 shadow-sm">
+        <div className="excellence-summary mb-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-700">
             <Star className="h-4 w-4 text-amber-500" /> Médias gerais das avaliações
           </div>
-          <div className="rounded-xl bg-slate-950 px-4 py-2 text-right text-white shadow-sm">
-            <div className="text-2xl font-black leading-none">{totalGeral}</div>
-            <div className="text-[10px] font-black uppercase tracking-wide text-slate-300">
+          <div className="total-card rounded-lg bg-slate-950 px-3 py-1.5 text-right text-white shadow-sm">
+            <div className="text-xl font-black leading-none">{totalGeral}</div>
+            <div className="text-[9px] font-black uppercase tracking-wide text-slate-300">
               total de avaliações
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="score-grid grid grid-cols-3 gap-2">
           {cards.map((card) => (
             <div
               key={card.label}
-              className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white px-5 py-4 shadow-sm"
+              className="score-card rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white px-3 py-2 shadow-sm"
             >
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-amber-700">
-                <Star className="h-4 w-4" /> {card.label}
+              <div className="score-label flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-700">
+                <Star className="h-3.5 w-3.5" /> {card.label}
               </div>
-              <div className="mt-1 text-4xl font-black text-slate-950">{formatScore(card.media)}</div>
-              <div className="text-xs font-bold text-slate-500">média geral</div>
+              <div className="score-value text-3xl font-black leading-none text-slate-950">{formatScore(card.media)}</div>
+              <div className="text-[10px] font-bold leading-tight text-slate-500">média geral</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-sky-100 bg-white/95 p-4 shadow-sm">
-        <div className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-700">
+      <div className="comments-card rounded-xl border border-sky-100 bg-white/95 p-2 shadow-sm">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-700">
           <MessageSquareHeart className="h-4 w-4 text-rose-500" /> 10 comentários com elogios
         </div>
         {stats.comentariosElogios.length ? (
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
+          <div className="comment-grid grid grid-cols-2 gap-1 xl:grid-cols-5">
             {stats.comentariosElogios.map((item, index) => (
               <div
                 key={`${item.nome}-${index}`}
-                className="rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-bold leading-tight text-slate-700 ring-1 ring-slate-200"
+                className="comment-card rounded-lg bg-slate-50 px-2 py-1 text-[10px] font-bold leading-tight text-slate-700 ring-1 ring-slate-200"
               >
-                <div className="mb-1 truncate text-[11px] font-black uppercase text-slate-950">
+                <div className="truncate text-[10px] font-black uppercase text-slate-950">
                   {index + 1}. {item.nome}
                 </div>
                 <div className="line-clamp-2">“{item.comentario}”</div>
@@ -582,7 +610,7 @@ function ExcellencePanel({ stats }) {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm font-bold text-slate-500">
+          <div className="comment-empty rounded-lg bg-slate-50 px-3 py-5 text-center text-xs font-bold text-slate-500">
             Importe o CSV para listar elogios encontrados nos comentários.
           </div>
         )}
@@ -594,13 +622,13 @@ function ExcellencePanel({ stats }) {
 function HighlightCard({ title, items, type }) {
   return (
     <div
-      className={`rounded-2xl border bg-white/95 p-3 shadow-sm ${
+      className={`highlight-card rounded-xl border bg-white/95 p-2 shadow-sm ${
         type === "risk" ? "border-rose-200" : "border-emerald-200"
       }`}
     >
-      <div className="mb-2 flex items-center gap-2 text-sm font-black text-slate-950">
+      <div className="highlight-title mb-1.5 flex items-center gap-1.5 text-xs font-black text-slate-950">
         <span
-          className={`h-8 w-2 rounded-full ${
+          className={`h-6 w-1.5 rounded-full ${
             type === "risk" ? "bg-rose-500" : "bg-emerald-400"
           }`}
         />
@@ -610,11 +638,11 @@ function HighlightCard({ title, items, type }) {
         {items.map((item) => (
           <div
             key={`${title}-${item.posicao}`}
-            className="grid grid-cols-[44px_1fr_52px] items-center rounded-xl bg-slate-50 px-3 py-2 text-sm font-black"
+            className="highlight-row grid grid-cols-[34px_1fr_46px] items-center rounded-lg bg-slate-50 px-2 py-1 text-xs font-black"
           >
             <span>{item.posicao}º</span>
             <span className="truncate">{item.nomeApresentativo}</span>
-            <span className="text-right text-lg">{formatScore(item.mediaServico)}</span>
+            <span className="text-right text-sm">{formatScore(item.mediaServico)}</span>
           </div>
         ))}
       </div>
@@ -627,14 +655,14 @@ function StatusPill({ status }) {
 
   return (
     <span
-      className={`inline-flex min-w-[76px] items-center justify-center gap-1 rounded-full border px-3 py-1 text-[11px] font-black ${statusStyles[status]}`}
+      className={`status-pill inline-flex min-w-[56px] items-center justify-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black ${statusStyles[status]}`}
     >
-      <Icon className="h-3.5 w-3.5" /> {status}
+      <Icon className="h-3 w-3" /> {status}
     </span>
   );
 }
 
-function RankingTable({ data, title, twoColumns, filterStatus, search }) {
+function RankingTable({ data, title, twoColumns, filterStatus, search, viewport }) {
   const filtered = useMemo(() => {
     return data.filter((item) => {
       const matchStatus = filterStatus === "TODOS" || item.status === filterStatus;
@@ -644,32 +672,68 @@ function RankingTable({ data, title, twoColumns, filterStatus, search }) {
     });
   }, [data, filterStatus, search]);
 
-  const firstHalf = twoColumns ? filtered.slice(0, Math.ceil(filtered.length / 2)) : filtered;
-  const secondHalf = twoColumns ? filtered.slice(Math.ceil(filtered.length / 2)) : [];
+  const availableWidth = viewport?.width || INITIAL_VIEWPORT.width;
+  const landscape = availableWidth >= (viewport?.height || INITIAL_VIEWPORT.height);
+  const maxAutoColumns =
+    !twoColumns || availableWidth < 760
+      ? 1
+      : availableWidth < 1100
+      ? 2
+      : availableWidth < 1500
+      ? 3
+      : 4;
+  const columnCount = twoColumns && landscape
+    ? Math.min(
+        maxAutoColumns,
+        filtered.length > 36 ? 4 : filtered.length > 22 ? 3 : filtered.length > 8 ? 2 : 1
+      )
+    : 1;
+  const itemsPerColumn = Math.ceil(filtered.length / columnCount) || 1;
+  const columnChunks = Array.from({ length: columnCount }, (_, index) =>
+    filtered.slice(index * itemsPerColumn, (index + 1) * itemsPerColumn)
+  );
+  const columns = filtered.length ? columnChunks.filter((chunk) => chunk.length) : [[]];
+  const maxRowsPerColumn = Math.max(...columns.map((chunk) => chunk.length), 1);
+  const compactColumns = columns.length >= 3 || availableWidth < 760;
+  const tableColumnsClass = compactColumns
+    ? "grid-cols-[40px_1fr_42px_50px_56px]"
+    : "grid-cols-[52px_1fr_56px_62px_70px_76px]";
 
   return (
-    <section className="overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-gradient-to-r from-white to-sky-50 px-4 py-3">
-        <h2 className="text-2xl font-black tracking-tight text-slate-950">{title}</h2>
-        <div className="flex items-center gap-2 text-xs font-black">
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-800">G6</span>
-          <span className="rounded-full bg-rose-100 px-3 py-1 text-rose-800">Z4</span>
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-800">↕ Movimento</span>
+    <section
+      className="ranking-panel flex min-h-0 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200"
+      style={{ "--ranking-rows": maxRowsPerColumn, "--ranking-columns": columns.length }}
+    >
+      <div className="ranking-panel-header flex shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-gradient-to-r from-white to-sky-50 px-3 py-2">
+        <h2 className="ranking-title truncate text-lg font-black tracking-tight text-slate-950">{title}</h2>
+        <div className="ranking-legend flex shrink-0 items-center gap-1.5 text-[10px] font-black">
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">G6</span>
+          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-rose-800">Z4</span>
+          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-800">↕ Movimento</span>
         </div>
       </div>
 
-      <div className={`grid ${twoColumns ? "xl:grid-cols-2" : "grid-cols-1"}`}>
-        {[firstHalf, secondHalf].filter(Boolean).map((chunk, chunkIndex) => (
-          <div key={chunkIndex} className={chunkIndex === 1 ? "border-l border-slate-200" : ""}>
-            <div className="grid grid-cols-[70px_1fr_80px_90px_100px_110px] gap-2 bg-slate-100 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-slate-500">
+      <div
+        className="ranking-grid grid min-h-0 flex-1"
+        style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+      >
+        {columns.map((chunk, chunkIndex) => (
+          <div
+            key={chunkIndex}
+            className={`ranking-column flex min-h-0 flex-col ${
+              chunkIndex > 0 ? "border-l border-slate-200" : ""
+            }`}
+          >
+            <div className={`ranking-column-head grid ${tableColumnsClass} shrink-0 gap-1 bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-slate-500`}>
               <span>Pos.</span>
               <span>Técnico</span>
               <span>Aval.</span>
               <span>Média</span>
-              <span>Resolve</span>
+              {!compactColumns && <span>Resolve</span>}
               <span>Status</span>
             </div>
-            <AnimatePresence initial={false}>
+            <div className="ranking-list min-h-0 flex-1">
+              <AnimatePresence initial={false}>
               {chunk.map((item) => (
                 <motion.div
                   key={item.nomeApresentativo}
@@ -677,7 +741,7 @@ function RankingTable({ data, title, twoColumns, filterStatus, search }) {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className={`grid grid-cols-[70px_1fr_80px_90px_100px_110px] items-center gap-2 border-b border-slate-200 px-4 py-2 text-sm font-black ${
+                  className={`ranking-row grid ${tableColumnsClass} min-h-0 items-center gap-1 overflow-hidden border-b border-slate-200 px-2 py-1 text-xs font-black ${
                     item.status === "G6"
                       ? "bg-emerald-50"
                       : item.status === "Z4"
@@ -689,13 +753,19 @@ function RankingTable({ data, title, twoColumns, filterStatus, search }) {
                     {item.posicao}º <span>{getMedal(item.posicao)}</span>
                   </span>
                   <span className="truncate">{item.nomeApresentativo}</span>
-                  <span className="text-base">{item.qtd}</span>
-                  <span className="text-base">{formatScore(item.mediaServico)}</span>
-                  <span className="text-xs text-slate-600">{formatPercent(item.resolvePercent)}</span>
+                  <span>{item.qtd}</span>
+                  <span>{formatScore(item.mediaServico)}</span>
+                  {!compactColumns && <span className="text-[10px] text-slate-600">{formatPercent(item.resolvePercent)}</span>}
                   <StatusPill status={item.status} />
                 </motion.div>
               ))}
-            </AnimatePresence>
+              </AnimatePresence>
+              {!chunk.length && (
+                <div className="ranking-empty flex items-center justify-center px-4 text-sm font-black text-slate-400">
+                  Sem dados para esta classificação.
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -705,6 +775,7 @@ function RankingTable({ data, title, twoColumns, filterStatus, search }) {
 
 export default function App() {
   const fileInputRef = useRef(null);
+  const viewport = useViewportSize();
   const [initialDashboardState] = useState(() => getInitialDashboardState());
   const [rawRows, setRawRows] = useState(initialDashboardState.rows);
   const [fileName, setFileName] = useState(initialDashboardState.fileName);
@@ -777,20 +848,20 @@ export default function App() {
   }
 
   return (
-    <main className={`min-h-screen bg-slate-950 p-3 text-slate-950 ${presentation ? "cursor-none" : ""}`}>
-      <div className="mx-auto max-w-[1800px]">
-        <header className="rounded-3xl border border-sky-400/20 bg-gradient-to-r from-sky-950 via-slate-900 to-slate-950 p-5 text-white shadow-2xl">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-sky-200/80">
+    <main className={`dashboard-root h-screen overflow-hidden bg-slate-950 p-2 text-slate-950 ${presentation ? "cursor-none" : ""}`}>
+      <div className="dashboard-shell mx-auto flex h-full max-w-[1800px] flex-col gap-2">
+        <header className="dashboard-header shrink-0 rounded-2xl border border-sky-400/20 bg-gradient-to-r from-sky-950 via-slate-900 to-slate-950 p-3 text-white shadow-2xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="dashboard-eyebrow flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-sky-200/80">
                 <Trophy className="h-4 w-4" /> TV Ranking • Estilo transmissão
               </div>
-              <h1 className="mt-1 text-4xl font-black tracking-tight md:text-5xl">
+              <h1 className="dashboard-title mt-0.5 truncate text-3xl font-black leading-none tracking-tight md:text-4xl">
                 Brasileirão do Atendimento
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="dashboard-actions flex shrink-0 flex-wrap items-center justify-end gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -815,13 +886,13 @@ export default function App() {
                 icon={twoColumns ? Columns2 : Columns3}
                 onClick={() => setTwoColumns(!twoColumns)}
               >
-                {twoColumns ? "2 colunas" : "1 coluna"}
+                {twoColumns ? "Colunas auto" : "1 coluna"}
               </HeaderButton>
             </div>
           </div>
         </header>
 
-        <section className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <section className="dashboard-info grid shrink-0 grid-cols-5 gap-2">
           <InfoCard icon={CalendarDays} label="Data do dia" value={latestDayLabel} />
           <InfoCard icon={Clock3} label="Rodadas" value={round} />
           <InfoCard icon={Medal} label="Líder do dia" value={leaderDay?.nomeApresentativo || "Sem dados"} />
@@ -831,16 +902,16 @@ export default function App() {
 
         <ExcellencePanel stats={stats} />
 
-        <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <section className="dashboard-highlights grid shrink-0 grid-cols-2 gap-2">
           <HighlightCard title="G6 em destaque" items={g6} type="g6" />
           <HighlightCard title="Z4 Zona de Risco" items={z4} type="risk" />
         </section>
 
-        <section className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <section className="dashboard-controls flex shrink-0 items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveTab("dia")}
-              className={`rounded-full px-4 py-2 text-sm font-black shadow ${
+              className={`control-button rounded-full px-3 py-1.5 text-xs font-black shadow ${
                 activeTab === "dia" ? "bg-amber-100 text-slate-950" : "bg-slate-800 text-slate-200"
               }`}
             >
@@ -848,7 +919,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab("geral")}
-              className={`rounded-full px-4 py-2 text-sm font-black shadow ${
+              className={`control-button rounded-full px-3 py-1.5 text-xs font-black shadow ${
                 activeTab === "geral" ? "bg-amber-100 text-slate-950" : "bg-slate-800 text-slate-200"
               }`}
             >
@@ -856,43 +927,44 @@ export default function App() {
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-900 p-2 text-white shadow-inner">
-            <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-slate-900">
+          <div className="control-panel flex items-center gap-2 rounded-xl bg-slate-900 p-1.5 text-white shadow-inner">
+            <div className="flex items-center gap-1.5 rounded-lg bg-white px-2 py-1.5 text-slate-900">
               <Search className="h-4 w-4 text-slate-500" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar técnico"
-                className="w-44 bg-transparent text-sm font-bold outline-none"
+                className="w-36 bg-transparent text-xs font-bold outline-none"
               />
             </div>
             <div className="relative">
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="appearance-none rounded-xl bg-white px-3 py-2 pr-8 text-sm font-black text-slate-900 outline-none"
+                className="appearance-none rounded-lg bg-white px-2 py-1.5 pr-7 text-xs font-black text-slate-900 outline-none"
               >
                 <option value="TODOS">Todos</option>
                 <option value="G6">G6</option>
                 <option value="MEIO">Meio</option>
                 <option value="Z4">Z4</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-2.5 h-4 w-4 text-slate-500" />
+              <ChevronDown className="pointer-events-none absolute right-2 top-2 h-3.5 w-3.5 text-slate-500" />
             </div>
           </div>
         </section>
 
-        <div className="mt-3">
+        <div className="dashboard-table-wrap min-h-0 flex-1">
           <RankingTable
             data={currentRanking}
             title={activeTab === "dia" ? `Classificação do dia - ${latestDayLabel}` : "Classificação geral"}
             twoColumns={twoColumns}
             filterStatus={filterStatus}
             search={search}
+            viewport={viewport}
           />
         </div>
 
-        <footer className="py-4 text-center text-xs font-bold text-slate-500">
+        <footer className="dashboard-footer shrink-0 truncate text-center text-[10px] font-bold leading-none text-slate-500">
           Para importar, envie um arquivo <span className="text-slate-300">CSV UTF-8</span> com as colunas <span className="text-slate-300">nomeApresentativo</span> e <span className="text-slate-300">NotaServico</span>. O ranking remove automaticamente os nomes fora do setor, ordena pela maior quantidade de avaliações do técnico e, em caso de empate, usa a maior média de Nota Serviço.
         </footer>
       </div>
