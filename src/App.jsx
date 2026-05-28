@@ -25,6 +25,9 @@ const statusStyles = {
   MEIO: "bg-slate-200 text-slate-800 border-slate-300",
 };
 
+const STORAGE_KEY = "brasileirao-atendimento:importacao:v1";
+const DEMO_FILE_NAME = "Exemplo demonstrativo";
+
 const excludedNames = [
   "LANA MEDEIROS",
   "RENATA ROMÃO",
@@ -344,6 +347,54 @@ function mapRows(rows) {
     }));
 }
 
+function loadSavedImport() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) return null;
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed?.rows) || !mapRows(parsed.rows).length) return null;
+
+    return {
+      rows: parsed.rows,
+      fileName: parsed.fileName || "CSV importado",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveImport(rows, fileName) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      rows,
+      fileName,
+      savedAt: new Date().toISOString(),
+    })
+  );
+}
+
+function clearSavedImport() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(STORAGE_KEY);
+}
+
+function getInitialDashboardState() {
+  const savedImport = loadSavedImport();
+  const rows = savedImport?.rows || demoData;
+
+  return {
+    rows,
+    fileName: savedImport?.fileName || DEMO_FILE_NAME,
+    round: countUniqueDays(rows),
+  };
+}
+
 function isElogio(comment) {
   const text = String(comment || "")
     .normalize("NFD")
@@ -654,14 +705,15 @@ function RankingTable({ data, title, twoColumns, filterStatus, search }) {
 
 export default function App() {
   const fileInputRef = useRef(null);
-  const [rawRows, setRawRows] = useState(demoData);
-  const [fileName, setFileName] = useState("Exemplo demonstrativo");
+  const [initialDashboardState] = useState(() => getInitialDashboardState());
+  const [rawRows, setRawRows] = useState(initialDashboardState.rows);
+  const [fileName, setFileName] = useState(initialDashboardState.fileName);
   const [activeTab, setActiveTab] = useState("dia");
   const [twoColumns, setTwoColumns] = useState(true);
   const [presentation, setPresentation] = useState(false);
   const [filterStatus, setFilterStatus] = useState("TODOS");
   const [search, setSearch] = useState("");
-  const [round, setRound] = useState(() => countUniqueDays(demoData));
+  const [round, setRound] = useState(initialDashboardState.round);
 
   const latestDayRows = useMemo(() => getLatestDayRows(rawRows), [rawRows]);
   const dayRanking = useMemo(() => mapRows(latestDayRows), [latestDayRows]);
@@ -704,15 +756,21 @@ export default function App() {
       return;
     }
 
-    setRawRows(jsonRows);
-    setFileName(file.name);
-    setRound(countUniqueDays(jsonRows));
-    event.target.value = "";
+    try {
+      saveImport(jsonRows, file.name);
+      setRawRows(jsonRows);
+      setFileName(file.name);
+      setRound(countUniqueDays(jsonRows));
+      event.target.value = "";
+    } catch {
+      alert("Não consegui salvar os dados no navegador. Tente importar um arquivo menor.");
+    }
   }
 
   function resetDemo() {
+    clearSavedImport();
     setRawRows(demoData);
-    setFileName("Exemplo demonstrativo");
+    setFileName(DEMO_FILE_NAME);
     setRound(countUniqueDays(demoData));
     setSearch("");
     setFilterStatus("TODOS");
